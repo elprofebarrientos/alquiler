@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             CitySeeder::class,
             CategorySeeder::class,
             SubcategorySeeder::class,
+            UnitSeeder::class,
+            BrandSeeder::class,
         ]);
 
         // User::factory(10)->create();
