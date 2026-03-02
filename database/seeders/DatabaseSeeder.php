@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,
             DepartmentSeeder::class,
             CitySeeder::class,
+            CategorySeeder::class,
+            SubcategorySeeder::class,
         ]);
 
         // User::factory(10)->create();
