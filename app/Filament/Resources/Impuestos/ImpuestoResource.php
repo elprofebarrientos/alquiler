@@ -16,7 +16,7 @@ class ImpuestoResource extends Resource
 {
     protected static ?string $model = Impuesto::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
 
     protected static ?string $recordTitleAttribute = 'name';
 

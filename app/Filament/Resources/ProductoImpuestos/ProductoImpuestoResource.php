@@ -16,7 +16,7 @@ class ProductoImpuestoResource extends Resource
 {
     protected static ?string $model = ProductoImpuesto::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentCheck;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptRefund;
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -46,6 +46,7 @@ class ProductoImpuestoResource extends Resource
         return [
             'index' => ListProductoImpuestos::route('/'),
             'create' => \App\Filament\Resources\ProductoImpuestos\Pages\CreateProductoImpuesto::route('/create'),
+            'edit' => \App\Filament\Resources\ProductoImpuestos\Pages\EditProductoImpuesto::route('/{record}/edit'),
         ];
     }
 }

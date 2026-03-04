@@ -9,6 +9,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 
 class ProductoImpuestoForm
 {
@@ -23,6 +24,7 @@ class ProductoImpuestoForm
                     ->searchable()
                     ->preload()
                     ->placeholder('Selecciona un producto')
+                    ->disabled(fn (?Model $record) => $record !== null)
                     ->columnSpanFull(),
                 Repeater::make('impuestos')
                     ->label('Impuestos a Aplicar')
