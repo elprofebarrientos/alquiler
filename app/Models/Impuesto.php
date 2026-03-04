@@ -9,6 +9,7 @@ class Impuesto extends Model
     protected $fillable = [
         'name',
         'porcentaje',
+        'tipo_afectacion',
         'codigo_dian',
         'es_retencion',
         'es_trasladable',
@@ -27,3 +28,4 @@ class Impuesto extends Model
 
     protected $table = 'impuestos';
 }
+

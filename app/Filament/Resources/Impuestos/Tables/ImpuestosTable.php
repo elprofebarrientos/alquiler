@@ -24,6 +24,16 @@ class ImpuestosTable
                     ->label('Porcentaje (%)')
                     ->numeric(decimalPlaces: 2)
                     ->sortable(),
+                TextColumn::make('tipo_afectacion')
+                    ->label('Tipo de Afectación')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'GRAVADO',
+                        'warning' => 'EXENTO',
+                        'info' => 'EXCLUIDO',
+                    ])
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('codigo_dian')
                     ->label('Código DIAN')
                     ->searchable()

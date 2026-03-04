@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Impuestos\Schemas;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class ImpuestoForm
@@ -31,6 +33,23 @@ class ImpuestoForm
                     ->maxValue(99.99)
                     ->step('0.01')
                     ->placeholder('Ej: 19.00'),
+                Select::make('tipo_afectacion')
+                    ->label('Tipo de Afectación')
+                    ->options([
+                        'GRAVADO' => 'Gravado',
+                        'EXENTO' => 'Exento',
+                        'EXCLUIDO' => 'Excluido',
+                    ])
+                    ->required()
+                    ->default('GRAVADO')
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        if (in_array($state, ['EXENTO', 'EXCLUIDO'])) {
+                            $set('es_retencion', false);
+                            $set('es_trasladable', false);
+                            $set('es_compuesto', false);
+                        }
+                    }),
                 TextInput::make('orden_calculo')
                     ->label('Orden de Cálculo')
                     ->numeric()
@@ -41,6 +60,7 @@ class ImpuestoForm
                     ->label('Es Retención')
                     ->default(false)
                     ->live()
+                    ->disabled(fn (Get $get) => in_array($get('tipo_afectacion'), ['EXENTO', 'EXCLUIDO']))
                     ->afterStateUpdated(function ($state, callable $set) {
                         if ($state) {
                             $set('es_trasladable', false);
@@ -51,6 +71,7 @@ class ImpuestoForm
                     ->label('Es Trasladable')
                     ->default(true)
                     ->live()
+                    ->disabled(fn (Get $get) => in_array($get('tipo_afectacion'), ['EXENTO', 'EXCLUIDO']))
                     ->afterStateUpdated(function ($state, callable $set) {
                         if ($state) {
                             $set('es_retencion', false);
@@ -60,6 +81,7 @@ class ImpuestoForm
                 Toggle::make('es_compuesto')
                     ->label('Es Compuesto')
                     ->default(false)
+                    ->disabled(fn (Get $get) => in_array($get('tipo_afectacion'), ['EXENTO', 'EXCLUIDO']))
                     ->helperText('Marcar si el impuesto se calcula sobre otro impuesto'),
                 Toggle::make('estado')
                     ->label('Estado Activo')

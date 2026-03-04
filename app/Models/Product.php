@@ -68,4 +68,12 @@ class Product extends Model
     {
         return $this->hasMany(ProductImage::class)->orderBy('orden');
     }
+
+    /**
+     * Get all impuestos associated with this product.
+     */
+    public function impuestos(): HasMany
+    {
+        return $this->hasMany(ProductoImpuesto::class);
+    }
 }
