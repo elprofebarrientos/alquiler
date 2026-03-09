@@ -12,7 +12,6 @@ class Product extends Model
         'name',
         'slug',
         'descripcion',
-        'images',
         'category_id',
         'subcategory_id',
         'brand_id',
@@ -26,7 +25,6 @@ class Product extends Model
         'maneja_talla' => 'boolean',
         'maneja_color' => 'boolean',
         'estado' => 'boolean',
-        'images' => 'array',
     ];
 
     /**
@@ -75,5 +73,13 @@ class Product extends Model
     public function impuestos(): HasMany
     {
         return $this->hasMany(ProductoImpuesto::class);
+    }
+
+    /**
+     * Get all variantes associated with this product.
+     */
+    public function variantes(): HasMany
+    {
+        return $this->hasMany(Variante::class, 'id_producto');
     }
 }

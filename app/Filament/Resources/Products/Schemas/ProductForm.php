@@ -66,15 +66,6 @@ class ProductForm
                     ->options(Unit::pluck('name', 'id'))
                     ->placeholder('Selecciona una unidad')
                     ->searchable(),
-                FileUpload::make('images')
-                    ->label('Imágenes del Producto')
-                    ->multiple()
-                    ->maxFiles(10)
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-                    ->maxSize(5120)
-                    ->directory('products')
-                    ->reorderable()
-                    ->columnSpanFull(),
                 Toggle::make('maneja_talla')
                     ->label('¿Maneja Tallas?')
                     ->default(false)

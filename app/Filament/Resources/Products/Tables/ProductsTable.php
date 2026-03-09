@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Filament\Resources\Variantes\VarianteResource;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
@@ -68,6 +70,11 @@ class ProductsTable
                 //
             ])
             ->recordActions([
+                Action::make('variantes')
+                    ->label('Variantes')
+                    ->icon('heroicon-o-squares-2x2')
+                    ->color('info')
+                    ->url(fn ($record) => VarianteResource::getUrl('create') . '?id_producto=' . $record->id),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
