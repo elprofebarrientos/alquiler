@@ -19,13 +19,33 @@ class Product extends Model
         'maneja_talla',
         'maneja_color',
         'estado',
+        'permite_venta',
+        'permite_alquiler',
     ];
 
     protected $casts = [
         'maneja_talla' => 'boolean',
         'maneja_color' => 'boolean',
         'estado' => 'boolean',
+        'permite_venta' => 'boolean',
+        'permite_alquiler' => 'boolean',
     ];
+
+    /**
+     * Scope to filter products that allow sale.
+     */
+    public function scopePermiteVenta($query)
+    {
+        return $query->where('permite_venta', true);
+    }
+
+    /**
+     * Scope to filter products that allow rental.
+     */
+    public function scopePermiteAlquiler($query)
+    {
+        return $query->where('permite_alquiler', true);
+    }
 
     /**
      * Get the category that owns this product.

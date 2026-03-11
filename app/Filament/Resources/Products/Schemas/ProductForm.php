@@ -78,6 +78,14 @@ class ProductForm
                     ->label('Estado Activo')
                     ->default(true)
                     ->helperText('Desactiva el producto si no está disponible'),
+                Toggle::make('permite_venta')
+                    ->label('¿Permite Venta?')
+                    ->default(true)
+                    ->helperText('Marcar si el producto se puede vender'),
+                Toggle::make('permite_alquiler')
+                    ->label('¿Permite Alquiler?')
+                    ->default(false)
+                    ->helperText('Marcar si el producto se puede alquilar'),
             ]);
     }
 }
