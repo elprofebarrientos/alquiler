@@ -22,17 +22,32 @@ class Compra extends Model
         'valor_retefuente',
         'valor_reteica',
         'total_neto_pagar',
+        'estado',
+        'fecha_pago',
+        'metodo_pago',
+        'monto_pagado',
+        'monto_restante',
+        'comprobante_pago',
     ];
 
     protected $casts = [
-        'fecha_emision' => 'date',
+        'fecha_emision'    => 'date',
         'fecha_vencimiento' => 'date',
-        'subtotal_bruto' => 'decimal:2',
-        'total_iva' => 'decimal:2',
+        'fecha_pago'       => 'datetime',
+        'subtotal_bruto'   => 'decimal:2',
+        'total_iva'        => 'decimal:2',
         'valor_retefuente' => 'decimal:2',
-        'valor_reteica' => 'decimal:2',
+        'valor_reteica'    => 'decimal:2',
         'total_neto_pagar' => 'decimal:2',
+        'monto_pagado'     => 'decimal:2',
+        'monto_restante'   => 'decimal:2',
     ];
+
+    /** Remaining balance when partially paid in cash */
+    public function getMontoPendienteAttribute(): float
+    {
+        return max(0, (float) $this->total_neto_pagar - (float) ($this->monto_pagado ?? 0));
+    }
 
     public function proveedor(): BelongsTo
     {

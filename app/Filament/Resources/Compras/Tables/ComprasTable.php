@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Compras\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -64,6 +66,33 @@ class ComprasTable
                     ->money('COP')
                     ->sortable(),
 
+                TextColumn::make('estado')
+                    ->label('Estado')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pendiente'      => 'Pendiente',
+                        'pagada_parcial' => 'Pagada Parcial',
+                        'pagada_total'   => 'Pagada Total',
+                        'vencida'        => 'Vencida',
+                        'anulada'        => 'Anulada',
+                        default          => $state,
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'pendiente'      => 'warning',
+                        'pagada_parcial' => 'info',
+                        'pagada_total'   => 'success',
+                        'vencida'        => 'danger',
+                        'anulada'        => 'gray',
+                        default          => 'secondary',
+                    })
+                    ->sortable(),
+
+                TextColumn::make('monto_restante')
+                    ->label('Restante')
+                    ->money('COP')
+                    ->toggleable()
+                    ->visible(fn ($record) => $record && in_array($record->estado, ['pagada_parcial'])),
+
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
@@ -72,6 +101,7 @@ class ComprasTable
             ])
             ->filters([])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->bulkActions([
