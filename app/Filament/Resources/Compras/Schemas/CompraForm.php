@@ -146,7 +146,7 @@ class CompraForm
                         ])
                         ->default('pendiente')
                         ->required()
-                        ->live(),
+                        ->hidden(),
 
                     DateTimePicker::make('fecha_pago')
                         ->label('Fecha de Pago')
@@ -170,7 +170,8 @@ class CompraForm
                         ->nullable()
                         ->live(onBlur: true)
                         ->afterStateUpdated(fn ($set, $get) => static::calcularMontoRestante($set, $get))
-                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total']) && $get('metodo_pago') === 'efectivo'),
+                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total']))
+                        ->helperText(fn (Get $get) => static::getHelperText($get)),
 
                     TextInput::make('monto_restante')
                         ->label('Monto Restante')
@@ -178,7 +179,7 @@ class CompraForm
                         ->prefix('$')
                         ->disabled()
                         ->dehydrated()
-                        ->visible(fn (Get $get) => $get('estado') === 'pagada_parcial' && $get('metodo_pago') === 'efectivo'),
+                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total'])),
 
                     FileUpload::make('comprobante_pago')
                         ->label('Comprobante de Pago')
@@ -229,11 +230,36 @@ class CompraForm
         $set($prefix . 'total_neto_pagar', round($subtotal + $iva - $retefuente - $reteica, 2));
     }
 
+    /**
+     * Calculate remaining amount and auto-update status
+     */
     private static function calcularMontoRestante(Set $set, Get $get): void
     {
-        $total = floatval($get('../../total_neto_pagar') ?? 0);
-        $pagado = floatval($get('../../monto_pagado') ?? 0);
+        $total = floatval($get('total_neto_pagar') ?? 0);
+        $pagado = floatval($get('monto_pagado') ?? 0);
         $restante = max(0, $total - $pagado);
-        $set('../../monto_restante', round($restante, 2));
+        $set('monto_restante', round($restante, 2));
+        
+        // Auto-update status based on payment
+        if ($restante <= 0 && $total > 0) {
+            $set('estado', 'pagada_total');
+        } elseif ($pagado > 0 && $restante > 0) {
+            $set('estado', 'pagada_parcial');
+        }
+    }
+
+    /**
+     * Get helper text for the monto_pagado field
+     */
+    private static function getHelperText(Get $get): string
+    {
+        $total = floatval($get('total_neto_pagar') ?? 0);
+        $pagado = floatval($get('monto_pagado') ?? 0);
+        $restante = max(0, $total - $pagado);
+        
+        if ($restante > 0) {
+            return 'Saldo pendiente: $' . number_format($restante, 2);
+        }
+        return 'La factura está pagada completamente';
     }
 }

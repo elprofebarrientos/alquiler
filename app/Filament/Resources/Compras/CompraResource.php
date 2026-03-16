@@ -7,6 +7,7 @@ use App\Filament\Resources\Compras\Pages\EditCompra;
 use App\Filament\Resources\Compras\Pages\ListCompras;
 use App\Filament\Resources\Compras\Pages\ViewCompra;
 use App\Filament\Resources\Compras\Schemas\CompraForm;
+use App\Filament\Resources\Compras\RelationManagers\AbonosRelationManager;
 use App\Filament\Resources\Compras\Tables\ComprasTable;
 use App\Models\Compra;
 use Filament\Resources\Resource;
@@ -38,7 +39,9 @@ class CompraResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            AbonosRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
