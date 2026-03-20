@@ -60,26 +60,6 @@ class Compra extends Model
                 $compra->estado = 'pagada_parcial';
             }
         });
-
-        static::saved(function (Compra $compra) {
-            // Only create abono if there's a new payment amount and it's a paid state
-            if (in_array($compra->estado, ['pagada_parcial', 'pagada_total']) && $compra->monto_pagado > 0) {
-                // Get the last abono to check if we need to create a new one
-                $ultimoAbono = $compra->abonos()->latest()->first();
-                
-                // If no existe abono or the monto is different, create a new one
-                if (!$ultimoAbono || $ultimoAbono->monto != $compra->monto_pagado) {
-                    // Create an Abono record for this payment
-                    Abono::create([
-                        'id_compra' => $compra->id_compra,
-                        'monto' => $compra->monto_pagado,
-                        'monto_restante' => $compra->monto_restante ?? 0,
-                        'metodo_pago' => $compra->metodo_pago ?? 'efectivo',
-                        'nota' => $compra->estado === 'pagada_total' ? 'Pago total registrado' : 'Pago parcial registrado',
-                    ]);
-                }
-            }
-        });
     }
 
     /**

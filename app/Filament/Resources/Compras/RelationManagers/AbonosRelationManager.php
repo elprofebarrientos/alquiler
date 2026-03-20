@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\Compras\RelationManagers;
 
-use App\Models\Abono;
 use App\Models\Compra;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -29,7 +29,19 @@ class AbonosRelationManager extends RelationManager
                     ->numeric()
                     ->prefix('$')
                     ->required()
-                    ->helperText(fn () => $this->getHelperText($compra)),
+                    ->helperText(fn () => $this->getHelperText($compra))
+                    ->rules([
+                        fn (): \Closure => function (string $attribute, $value, \Closure $fail) use ($compra) {
+                            if (!$compra || !$compra->exists) {
+                                return;
+                            }
+                            
+                            $saldoPendiente = $this->getSaldoPendiente($compra);
+                            if ((float) $value > $saldoPendiente) {
+                                $fail("El monto no puede exceder el saldo pendiente de $" . number_format($saldoPendiente, 2));
+                            }
+                        },
+                    ]),
                 Select::make('metodo_pago')
                     ->label('Método de Pago')
                     ->options([
@@ -40,6 +52,12 @@ class AbonosRelationManager extends RelationManager
                 TextInput::make('nota')
                     ->label('Nota')
                     ->maxLength(255),
+                FileUpload::make('documento')
+                    ->label('Documento (PDF o Fotografía)')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+                    ->directory('abonos-documentos')
+                    ->nullable()
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -53,13 +71,22 @@ class AbonosRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('metodo_pago')
                     ->label('Método de Pago'),
                 Tables\Columns\TextColumn::make('nota')
-                    ->label('Nota'),
+                    ->label('Nota')
+                    ->limit(50),
+                Tables\Columns\TextColumn::make('documento')
+                    ->label('Documento')
+                    ->url(fn ($record) => $record->documento ? asset('storage/' . $record->documento) : null)
+                    ->openUrlInNewTab()
+                    ->badge()
+                    ->color('info')
+                    ->visible(fn ($record) => !empty($record->documento)),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Fecha')
                     ->dateTime('d/m/Y H:i'),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->visible(fn () => $this->canCreateAbono()),
             ])
             ->actions([
                 EditAction::make(),
@@ -77,9 +104,30 @@ class AbonosRelationManager extends RelationManager
             return '';
         }
 
-        $totalAbonos = $compra->abonos()->sum('monto');
-        $saldoPendiente = (float) $compra->total_neto_pagar - $totalAbonos;
+        $saldoPendiente = $this->getSaldoPendiente($compra);
 
         return "Saldo pendiente: $" . number_format(max(0, $saldoPendiente), 2);
+    }
+
+    /**
+     * Calculate remaining balance for the purchase
+     */
+    protected function getSaldoPendiente(Compra $compra): float
+    {
+        $totalAbonos = $compra->abonos()->sum('monto');
+        return max(0, (float) $compra->total_neto_pagar - $totalAbonos);
+    }
+
+    /**
+     * Check if a new abono can be created
+     */
+    protected function canCreateAbono(): bool
+    {
+        $compra = $this->getOwnerRecord();
+        if (!$compra || !$compra->exists) {
+            return false;
+        }
+        
+        return $this->getSaldoPendiente($compra) > 0;
     }
 }

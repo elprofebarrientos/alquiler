@@ -2,11 +2,10 @@
 
 namespace App\Filament\Resources\Compras\Schemas;
 
+use App\Models\Compra;
 use App\Models\Product;
 use App\Models\Proveedor;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -20,7 +19,7 @@ class CompraForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Datos de la Compra')
+            Section::make('Datos de la Compra del proveedor')
                 ->columnSpanFull()
                 ->columns(5)
                 ->schema([
@@ -29,22 +28,27 @@ class CompraForm
                         ->options(fn () => Proveedor::query()->where('estado', true)->pluck('razon_social', 'id_proveedor'))
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->disabled(fn ($get) => static::hasAbonos($get)),
 
                     TextInput::make('numero_factura')
                         ->label('Número de Factura')
-                        ->maxLength(50),
+                        ->maxLength(50)
+                        ->disabled(fn ($get) => static::hasAbonos($get)),
 
                     TextInput::make('cufe')
                         ->label('CUFE (Código DIAN)')
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->disabled(fn ($get) => static::hasAbonos($get)),
 
                     DatePicker::make('fecha_emision')
                         ->label('Fecha de Emisión')
-                        ->required(),
+                        ->required()
+                        ->disabled(fn ($get) => static::hasAbonos($get)),
 
                     DatePicker::make('fecha_vencimiento')
-                        ->label('Fecha de Vencimiento'),
+                        ->label('Fecha de Vencimiento')
+                        ->disabled(fn ($get) => static::hasAbonos($get)),
                 ]),
 
             Section::make('Detalle de Productos')
@@ -56,9 +60,10 @@ class CompraForm
                         ->schema([
                             Select::make('id_producto')
                                 ->label('Producto')
-                                ->options(fn () => Product::query()->pluck('name', 'id'))
+                                ->options(fn ($get) => static::getAvailableProducts($get))
                                 ->searchable()
-                                ->required(),
+                                ->required()
+                                ->disabled(fn ($get) => static::hasAbonos($get)),
 
                             TextInput::make('cantidad')
                                 ->label('Cantidad')
@@ -66,7 +71,8 @@ class CompraForm
                                 ->required()
                                 ->minValue(0.01)
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn ($set, $get) => static::recalcularTotales($set, $get)),
+                                ->afterStateUpdated(fn ($set, $get) => static::recalcularTotales($set, $get))
+                                ->disabled(fn ($get) => static::hasAbonos($get)),
 
                             TextInput::make('costo_unitario')
                                 ->label('Costo Unitario (sin IVA)')
@@ -74,7 +80,8 @@ class CompraForm
                                 ->prefix('$')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn ($set, $get) => static::recalcularTotales($set, $get)),
+                                ->afterStateUpdated(fn ($set, $get) => static::recalcularTotales($set, $get))
+                                ->disabled(fn ($get) => static::hasAbonos($get)),
 
                             TextInput::make('porcentaje_iva')
                                 ->label('% IVA')
@@ -82,12 +89,15 @@ class CompraForm
                                 ->suffix('%')
                                 ->default(0)
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn ($set, $get) => static::recalcularTotales($set, $get)),
+                                ->afterStateUpdated(fn ($set, $get) => static::recalcularTotales($set, $get))
+                                ->disabled(fn ($get) => static::hasAbonos($get)),
                         ])
                         ->columns(4)
                         ->addActionLabel('Agregar producto')
                         ->live()
-                        ->afterStateUpdated(fn ($set, $get) => static::recalcularTotalesFromRoot($set, $get)),
+                        ->afterStateUpdated(fn ($set, $get) => static::recalcularTotalesFromRoot($set, $get))
+                        ->disabled(fn ($get) => static::hasAbonos($get))
+                        ->deletable(fn ($get) => !static::hasAbonos($get)),
                 ]),
 
             Section::make('Totales')
@@ -114,13 +124,15 @@ class CompraForm
                         ->label('Retención en la Fuente')
                         ->numeric()
                         ->prefix('$')
-                        ->default(0),
+                        ->default(0)
+                        ->disabled(fn ($get) => static::hasAbonos($get)),
 
                     TextInput::make('valor_reteica')
                         ->label('ReteICA')
                         ->numeric()
                         ->prefix('$')
-                        ->default(0),
+                        ->default(0)
+                        ->disabled(fn ($get) => static::hasAbonos($get)),
 
                     TextInput::make('total_neto_pagar')
                         ->label('Total Neto a Pagar')
@@ -130,66 +142,54 @@ class CompraForm
                         ->disabled()
                         ->dehydrated(),
                 ]),
-
-            Section::make('Estado y Pago')
-                ->columnSpanFull()
-                ->columns(3)
-                ->schema([
-                    Select::make('estado')
-                        ->label('Estado de la Compra')
-                        ->options([
-                            'pendiente'       => 'Pendiente',
-                            'pagada_parcial'  => 'Pagada Parcial',
-                            'pagada_total'    => 'Pagada Total',
-                            'vencida'         => 'Vencida',
-                            'anulada'         => 'Anulada',
-                        ])
-                        ->default('pendiente')
-                        ->required()
-                        ->hidden(),
-
-                    DateTimePicker::make('fecha_pago')
-                        ->label('Fecha de Pago')
-                        ->nullable()
-                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total'])),
-
-                    Select::make('metodo_pago')
-                        ->label('Método de Pago')
-                        ->options([
-                            'efectivo'      => 'Efectivo',
-                            'transferencia' => 'Transferencia',
-                        ])
-                        ->nullable()
-                        ->live()
-                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total'])),
-
-                    TextInput::make('monto_pagado')
-                        ->label('Monto Pagado')
-                        ->numeric()
-                        ->prefix('$')
-                        ->nullable()
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($set, $get) => static::calcularMontoRestante($set, $get))
-                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total']))
-                        ->helperText(fn (Get $get) => static::getHelperText($get)),
-
-                    TextInput::make('monto_restante')
-                        ->label('Monto Restante')
-                        ->numeric()
-                        ->prefix('$')
-                        ->disabled()
-                        ->dehydrated()
-                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total'])),
-
-                    FileUpload::make('comprobante_pago')
-                        ->label('Comprobante de Pago')
-                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
-                        ->directory('comprobantes-pago')
-                        ->nullable()
-                        ->columnSpanFull()
-                        ->visible(fn (Get $get) => in_array($get('estado'), ['pagada_parcial', 'pagada_total'])),
-                ]),
         ]);
+    }
+
+    /**
+     * Check if the purchase has abonos
+     */
+    private static function hasAbonos(Get $get): bool
+    {
+        // Get the record ID from the form
+        $recordId = $get('id_compra');
+        
+        if (!$recordId) {
+            return false;
+        }
+        
+        // Check if the compra has any abonos
+        $compra = Compra::find($recordId);
+        
+        if (!$compra) {
+            return false;
+        }
+        
+        return $compra->abonos()->count() > 0;
+    }
+
+    /**
+     * Get available products excluding those already added to this purchase
+     */
+    private static function getAvailableProducts(Get $get): \Illuminate\Support\Collection
+    {
+        $recordId = $get('id_compra');
+        
+        $products = Product::query()->orderBy('name')->get();
+        
+        if ($recordId) {
+            $compra = Compra::find($recordId);
+            
+            if ($compra && $compra->detalles()->count() > 0) {
+                // Get IDs of products already in this purchase
+                $existingProductIds = $compra->detalles()->pluck('id_producto')->toArray();
+                
+                // Exclude those products
+                $products = $products->whereNotIn('id', $existingProductIds);
+            }
+        }
+        
+        // Return as key-value array with id as key and name as value
+        return $products->pluck('name', 'id');
     }
 
     /**
@@ -228,38 +228,5 @@ class CompraForm
         $set($prefix . 'subtotal_bruto', round($subtotal, 2));
         $set($prefix . 'total_iva', round($iva, 2));
         $set($prefix . 'total_neto_pagar', round($subtotal + $iva - $retefuente - $reteica, 2));
-    }
-
-    /**
-     * Calculate remaining amount and auto-update status
-     */
-    private static function calcularMontoRestante(Set $set, Get $get): void
-    {
-        $total = floatval($get('total_neto_pagar') ?? 0);
-        $pagado = floatval($get('monto_pagado') ?? 0);
-        $restante = max(0, $total - $pagado);
-        $set('monto_restante', round($restante, 2));
-        
-        // Auto-update status based on payment
-        if ($restante <= 0 && $total > 0) {
-            $set('estado', 'pagada_total');
-        } elseif ($pagado > 0 && $restante > 0) {
-            $set('estado', 'pagada_parcial');
-        }
-    }
-
-    /**
-     * Get helper text for the monto_pagado field
-     */
-    private static function getHelperText(Get $get): string
-    {
-        $total = floatval($get('total_neto_pagar') ?? 0);
-        $pagado = floatval($get('monto_pagado') ?? 0);
-        $restante = max(0, $total - $pagado);
-        
-        if ($restante > 0) {
-            return 'Saldo pendiente: $' . number_format($restante, 2);
-        }
-        return 'La factura está pagada completamente';
     }
 }

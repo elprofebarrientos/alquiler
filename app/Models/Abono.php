@@ -18,6 +18,7 @@ class Abono extends Model
         'monto_restante',
         'metodo_pago',
         'nota',
+        'documento',
     ];
 
     protected $casts = [
