@@ -152,18 +152,18 @@ class CompraForm
     {
         // Get the record ID from the form
         $recordId = $get('id_compra');
-        
+
         if (!$recordId) {
             return false;
         }
-        
+
         // Check if the compra has any abonos
         $compra = Compra::find($recordId);
-        
+
         if (!$compra) {
             return false;
         }
-        
+
         return $compra->abonos()->count() > 0;
     }
 
@@ -173,21 +173,31 @@ class CompraForm
     private static function getAvailableProducts(Get $get): \Illuminate\Support\Collection
     {
         $recordId = $get('id_compra');
-        
+
         $products = Product::query()->orderBy('name')->get();
-        
+
+        // Get the current product being edited in this row (if any)
+        $currentProductId = $get('id_producto');
+
         if ($recordId) {
             $compra = Compra::find($recordId);
-            
+
             if ($compra && $compra->detalles()->count() > 0) {
                 // Get IDs of products already in this purchase
                 $existingProductIds = $compra->detalles()->pluck('id_producto')->toArray();
-                
-                // Exclude those products
-                $products = $products->whereNotIn('id', $existingProductIds);
+
+                // Exclude those products, but keep the current one being edited
+                $products = $products->filter(function ($product) use ($existingProductIds, $currentProductId) {
+                    // Always include the product currently being edited
+                    if ($currentProductId && $product->id == $currentProductId) {
+                        return true;
+                    }
+                    // Exclude products that are already in other rows
+                    return !in_array($product->id, $existingProductIds);
+                });
             }
         }
-        
+
         // Return as key-value array with id as key and name as value
         return $products->pluck('name', 'id');
     }
